@@ -12,3 +12,9 @@ OUT_PATH = ./out
 - manually configure source, ... in main.ts
 - usually the .vtt resource can be found observing requests using the Network tab of a browser developer console while turning subtitles off and on.
 > npm start
+## result:
+a markdown table with timestamps is generated and additionaly a pdf is rendered.
+
+
+
+![image](https://user-images.githubusercontent.com/36682087/197334798-18c047d1-9d6f-4a37-b287-908baaa6e758.png)
