@@ -55,7 +55,7 @@ function toSubtitles(vtt: string): Subtitle_line[] {
     ));
   }
   const regex =
-    /(\d\d):(\d\d):(\d\d).(\d\d\d) --> (\d\d):(\d\d):(\d\d).(\d\d\d)\n(\D*\S)\n/gm;
+    /(\d\d):(\d\d):(\d\d).(\d\d\d) --> (\d\d):(\d\d):(\d\d).(\d\d\d)\n(([^\n]+\n)*[^\n]+)/gm;
   return [...vtt.matchAll(regex)].map(getSubtitles).flat();
 }
 

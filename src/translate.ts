@@ -40,7 +40,7 @@ async function translateSave_SV_EN(text: string[]): Promise<string[] | null> {
     deep.join(" ").split(/ |\n/gm).length
   } words (${
     deep.length
-  } elements): \n${content_summary}\n\nContinue? (y/N/FAKE)`;
+  } elements): \n${content_summary}\n\nContinue? (y/N/FAKE/PRINTALL)`;
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -92,9 +92,12 @@ async function translateSave_SV_EN(text: string[]): Promise<string[] | null> {
     } else if (ans === "N" || ans === "n") {
       console.log("ABORTED");
       return null;
+    } else if (ans === "PRINTALL") {
+      console.log(deep);
+      return translateSave_SV_EN(text);
     } else {
       console.log("Invalid input");
-      return translateSave_SV_EN(deep);
+      return translateSave_SV_EN(text);
     }
   });
 }
