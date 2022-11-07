@@ -2,7 +2,6 @@ import * as deepl from "deepl-node";
 import dotenv from "dotenv";
 import readline from "readline";
 import fs from "fs";
-import { AuthorizationError } from "deepl-node";
 dotenv.config(); //set deepl api key!
 
 async function translateSave_SV_EN(text: string[]): Promise<string[] | null> {

@@ -34,7 +34,7 @@ class Subtitle_with_translation extends Subtitle_line {
 function toSubtitles(vtt: string): Subtitle_line[] {
   //split by \n
   function getSubtitles(match: RegExpMatchArray): Subtitle_line[] {
-    const text = match[9];
+    const text = match[10];
     return text.split("\n").map((t,idx )=> new Subtitle_line(
       {
         startTime: {
@@ -53,9 +53,13 @@ function toSubtitles(vtt: string): Subtitle_line[] {
       t,
       idx == 0
     ));
-  }
+  } 
+  /* regex:
+  startTimestamp --> endTimestamp [anyNoNewline]
+  <optional: someXMLTag>SUBTITLE_TEXT(without XML Tag and two newlines directly following each other)
+  */
   const regex =
-    /(\d\d):(\d\d):(\d\d).(\d\d\d) --> (\d\d):(\d\d):(\d\d).(\d\d\d)\n(([^\n]+\n)*[^\n]+)/gm;
+    /(\d\d):(\d\d):(\d\d).(\d\d\d) --> (\d\d):(\d\d):(\d\d).(\d\d\d)[^\n]*\n(<[^>]*>)?(([^\n<]+\n)*[^\n<]+)/gm;
   return [...vtt.matchAll(regex)].map(getSubtitles).flat();
 }
 
