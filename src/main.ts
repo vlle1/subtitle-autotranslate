@@ -7,17 +7,34 @@ import axios from 'axios';
 
 async function laett_svenska_vtt_url(): Promise<string> {
     //get url for subtitles:
-    console.log("guessing vtt url of latest lätt nyheter...")
+    console.log("guessing vtt url of latest lätt nyheter... :o")
     // 1. Get request to https://www.svtplay.se/nyheter-pa-latt-svenska, search for first occurance of "videoSvtId" and get the value
     const latt_nyheter_url = "https://www.svtplay.se/nyheter-pa-latt-svenska"
     const response = await axios.get(latt_nyheter_url)
     const videoId = response.data.matchAll(/videoSvtId\\":\\"([^\\]*)\\"/gm).next().value[1]
     // 2. Get request to https://api.svt.se/video/<id>, vtt url in [JSON OBJECT].subtitleReferences[0].url
-    const video_url = "https://api.svt.se/video/" + videoId
-    const response2 = await axios.get(video_url)
-    const vtt_url = response2.data.subtitleReferences[0].url
-    //use translator.
-    return vtt_url
+    return vtt_url_from_videoSvtId(videoId)
+}
+async function vtt_url_from_video_url(videoUrl: string): Promise<string | null> {
+  //for example: https://www.svtplay.se/video/ePnYXBD/30-minuter/energi--och-naringsminister-ebba-busch?id=ePnYXBD
+  let videoSvtId = videoUrl.matchAll(/www\.svtplay\.se\/video\/([a-zA-Z]*)\//gm).next().value[1]
+  if (videoSvtId == null) { return null }
+  return vtt_url_from_videoSvtId(videoSvtId)
+}
+async function programTitle_from_video_url(videoUrl: string): Promise<string|null> {
+  let videoSvtId = videoUrl.matchAll(/www\.svtplay\.se\/video\/([a-zA-Z]*)\//gm).next().value[1]
+  if (videoSvtId == null) { return null }
+  const video_url = "https://api.svt.se/video/" + videoSvtId
+  const response2 = await axios.get(video_url)
+  const title = response2.data.programTitle
+  return title
+}
+async function vtt_url_from_videoSvtId(videoSvtId: string): Promise<string> {
+  const video_url = "https://api.svt.se/video/" + videoSvtId
+  const response2 = await axios.get(video_url)
+  //console.log(response2.data)
+  const vtt_url = response2.data.subtitleReferences[0].url
+  return vtt_url
 }
 async function dateStamp(source: string, fallback_subtractDays: number): Promise<string> {
   //try infer date from url:
@@ -70,7 +87,7 @@ async function configure_interactive(config: Config): Promise<Config> {
     output: process.stdout,
   });
   return new Promise((resolve) =>
-    rl.question(`Welcome to Subtitle-autotranslate. Current Configuration:\n\tTitle: "${config.title}",\n\tDate: ${config.dateStamp} \n\tSource: "${config.source}"\nPress...\n[Enter] continue with translation\n[D] correct date using manual offset\n[S] set vtt source (inferres date)\n[T] set title\n[Ctrl-C] abort\n`, (ans) => {
+    rl.question(`Welcome to Subtitle-autotranslate. Current Configuration:\n\tTitle: "${config.title}",\n\tDate: ${config.dateStamp} \n\tSource: "${config.source}"\nPress...\n[Enter] continue with translation\n[V] specify a different video\n[D] correct date using manual offset\n[S] set vtt source (inferres date)\n[T] set title\n[Ctrl-C] abort\n`, (ans) => {
       rl.close();
       resolve(ans);
     })
@@ -90,6 +107,22 @@ async function configure_interactive(config: Config): Promise<Config> {
           resolve(ans2);
         })
       ).then(async (ans2: string) => await configure_interactive({ ...config, dateStamp: dateStamp_manual(parseInt(ans2)) })) 
+    }
+    if (ans === "V") {
+      const ans2: string = await new Promise((resolve) =>
+        rl2.question(`Enter video url [inferres program name, vtt source and date!]:`, (ans2) => {
+          rl2.close();
+          resolve(ans2);
+        })
+      )
+      const vtt_url = await vtt_url_from_video_url(ans2)
+      const title = (await programTitle_from_video_url(ans2))?.replaceAll(" ","_") || "NO TITLE"
+      
+      if (vtt_url == null) {
+        console.log("could not infer vtt source from video url: " + ans2)
+        return await configure_interactive(config)
+      }
+      return await configure_interactive({ ...config, title: title, source: vtt_url, dateStamp: await dateStamp(vtt_url, NaN) })
     }
     if (ans === "S") {
       const ans2: string = await new Promise((resolve) =>
@@ -114,7 +147,12 @@ async function configure_interactive(config: Config): Promise<Config> {
     return await configure_interactive(config)
   });
 }
-const source: string = await laett_svenska_vtt_url()
+let source: string = "not set"
+try {
+  source = await laett_svenska_vtt_url()
+} catch (error) {
+  console.log("could not get vtt url from lätt svenska")
+}
 const BASE_CONFIG: Config = {
   "title": "lätt nyheter", // "lätt nyheter"
   "dateStamp": await dateStamp(source, NaN), //fallback: 0 = today, 1 = yesterday, etc - only needed if date cannot be inferred from url (/YYYYMMDD/)
